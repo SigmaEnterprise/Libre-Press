@@ -9,6 +9,7 @@ import { ArticleEditor } from '@/components/ArticleEditor';
 import { VersionHistory } from '@/components/VersionHistory';
 import { DiffViewer } from '@/components/DiffViewer';
 import { ArticleAnalytics } from '@/components/ArticleAnalytics';
+import { ArticleZapButtonWrapper } from '@/components/ArticleZapButtonWrapper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -264,15 +265,24 @@ const Index = () => {
               </Alert>
             )}
             {dTag && (
-              <div className="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                <p className="text-sm text-gray-400">
-                  Current Article: <span className="text-white font-mono">{dTag}</span>
-                </p>
-                {versions && versions.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {versions.length} {versions.length === 1 ? 'version' : 'versions'} found
-                  </p>
-                )}
+              <div className="mt-4 space-y-3">
+                <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">
+                        Current Article: <span className="text-white font-mono">{dTag}</span>
+                      </p>
+                      {versions && versions.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {versions.length} {versions.length === 1 ? 'version' : 'versions'} found
+                        </p>
+                      )}
+                    </div>
+                    {currentVersion && currentVersion.kind === 30023 && (
+                      <ArticleZapButtonWrapper article={currentVersion} />
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

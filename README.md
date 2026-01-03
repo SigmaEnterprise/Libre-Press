@@ -15,15 +15,19 @@ A decentralized publishing platform for NIP-23 long-form content with version co
 
 ### 👥 Collaborative Editing
 - **Multi-Author Support**: Add collaborators by their Nostr public keys
-- **Contribution Tracking**: Automatic calculation of each contributor's edit percentage
-- **Revenue Splitting**: Automatic distribution of Lightning payments based on contribution weights
+- **Custom Revenue Splits**: Set custom weight for each collaborator
+- **Visual Split Preview**: See exact percentage breakdown before publishing
+- **Contribution Tracking**: Track each contributor's involvement
 - **Peer Review Workflow**: Comment system using NIP-22 (kind 1111) for feedback
 
-### 💰 Lightning Integration
+### 💰 Lightning Integration & Revenue Splits
 - **Zap Support**: Receive Lightning payments (zaps) on your articles
-- **Automatic Splits**: Payments automatically divided among collaborators
-- **NWC Integration**: Use Nostr Wallet Connect (NIP-47) for seamless payments
-- **Contribution-Based Distribution**: Revenue split matches actual contribution percentages
+- **Automatic Multi-Recipient Splits**: Payments automatically divided among all collaborators
+- **NWC Integration**: Full Nostr Wallet Connect (NIP-47) support for seamless payments
+- **WebLN Support**: Alternative wallet connection method
+- **Custom Weight System**: Define exact revenue split percentages per contributor
+- **Real-time Split Preview**: See how zaps will be distributed before sending
+- **Smart Payment Routing**: Each contributor receives their share directly to their lightning address
 
 ### 📊 Analytics & Engagement
 - **Engagement Metrics**: Track zaps, reactions, reposts, and comments
@@ -74,10 +78,11 @@ The naddr format includes the article identifier, author pubkey, and kind, makin
 
 ### 3. Collaborate with Others
 
-1. Add collaborator public keys (npub or hex format)
-2. Share the article's **naddr** with your team
-3. Each edit creates a new version automatically
-4. Contribution weights are calculated based on edits
+1. Add collaborators with their public keys (npub or hex format)
+2. Set custom revenue split weights for each contributor
+3. Preview the percentage breakdown in real-time
+4. Share the article's **naddr** with your team
+5. Each edit creates a new version automatically
 
 ### 4. Publish Your Article
 
@@ -181,17 +186,32 @@ const weight = calculateContributionWeight(
 
 ### Revenue Distribution
 
-When a zap is received:
+When a user zaps an article:
 
-1. Parse `contribution_weight` tags from the latest version
+1. Parse `contribution_weight` tags from the published article
 2. Calculate each contributor's share: `zapAmount * weight`
-3. Use NWC to send payments to each contributor
+3. Fetch lightning addresses (lud16) for each contributor
+4. Use NWC or WebLN to send payments to each contributor
+5. Display success/failure status for each payment
 
 ```typescript
 // Example: 10,000 sat zap with 60/40 split
-// Contributor 1: 10,000 * 0.6 = 6,000 sats
-// Contributor 2: 10,000 * 0.4 = 4,000 sats
+// Contributor 1: 10,000 * 0.6 = 6,000 sats (sent to their lud16)
+// Contributor 2: 10,000 * 0.4 = 4,000 sats (sent to their lud16)
 ```
+
+### Setting Custom Revenue Splits
+
+1. In the Article Editor, click "Add Collaborator"
+2. Enter the collaborator's public key (npub or hex)
+3. Set their weight (any positive number)
+4. Weights are automatically normalized to percentages
+5. Preview shows exact split: `weight / totalWeight * 100%`
+
+**Example weights:**
+- Contributor A: weight 3 → 60% (3/5)
+- Contributor B: weight 2 → 40% (2/5)
+- Total weight: 5
 
 ## Custom Extensions (NIP.md)
 

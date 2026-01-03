@@ -32,9 +32,15 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
   const [content, setContent] = useState('');
   const [image, setImage] = useState('');
   const [topics, setTopics] = useState('');
-  const [collaborators, setCollaborators] = useState('');
   const [publishedAt, setPublishedAt] = useState('');
   const [isDraft, setIsDraft] = useState(true);
+
+  // Collaborator state - array of { pubkey, weight }
+  interface Collaborator {
+    pubkey: string;
+    weight: number;
+  }
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 
   // Preview state
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
@@ -51,14 +57,25 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
       const imageTag = initialArticle.tags.find(([name]) => name === 'image')?.[1];
       const publishedAtTag = initialArticle.tags.find(([name]) => name === 'published_at')?.[1];
       const topicTags = initialArticle.tags.filter(([name]) => name === 't').map(([, value]) => value);
+
+      // Load collaborators with weights
       const collaboratorTags = initialArticle.tags.filter(([name]) => name === 'p').map(([, pubkey]) => pubkey);
+      const loadedCollaborators: Collaborator[] = [];
+
+      for (const pubkey of collaboratorTags) {
+        const weightTag = initialArticle.tags.find(
+          ([name, p]) => name === 'contribution_weight' && p === pubkey
+        );
+        const weight = weightTag ? parseFloat(weightTag[2]) : 1;
+        loadedCollaborators.push({ pubkey, weight });
+      }
 
       setTitle(titleTag || '');
       setSummary(summaryTag || '');
       setContent(initialArticle.content);
       setImage(imageTag || '');
       setTopics(topicTags.join(', '));
-      setCollaborators(collaboratorTags.join(', '));
+      setCollaborators(loadedCollaborators);
       setPublishedAt(publishedAtTag || '');
       setIsDraft(initialArticle.kind === 30024);
 
@@ -154,15 +171,15 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
     }
 
     // Add collaborator tags with contribution weight
-    const collaboratorList = collaborators
-      .split(',')
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0);
+    // Normalize weights to sum to 1.0
+    const totalWeight = collaborators.reduce((sum, c) => sum + c.weight, 0);
+    const normalizedCollaborators = totalWeight > 0
+      ? collaborators.map((c) => ({ ...c, weight: c.weight / totalWeight }))
+      : collaborators;
 
-    for (const collaborator of collaboratorList) {
-      tags.push(['p', collaborator]);
-      // Equal weight for now - will be calculated based on actual contributions
-      tags.push(['contribution_weight', collaborator, '1']);
+    for (const collaborator of normalizedCollaborators) {
+      tags.push(['p', collaborator.pubkey]);
+      tags.push(['contribution_weight', collaborator.pubkey, collaborator.weight.toFixed(4)]);
     }
 
     // Add published_at tag for first publication
@@ -336,20 +353,99 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
             </div>
 
             {/* Collaborators */}
-            <div className="space-y-2">
-              <Label htmlFor="collaborators" className="text-white flex items-center gap-2">
+            <div className="space-y-3">
+              <Label className="text-white flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Collaborators (pubkeys, comma-separated)
+                Collaborators & Revenue Splits
               </Label>
-              <Input
-                id="collaborators"
-                value={collaborators}
-                onChange={(e) => setCollaborators(e.target.value)}
-                placeholder="npub1..., npub2..."
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-              />
+
+              {collaborators.map((collab, index) => (
+                <div key={index} className="grid grid-cols-[1fr_120px_auto] gap-2 items-start">
+                  <div>
+                    <Input
+                      value={collab.pubkey}
+                      onChange={(e) => {
+                        const updated = [...collaborators];
+                        updated[index].pubkey = e.target.value;
+                        setCollaborators(updated);
+                      }}
+                      placeholder="npub1... or hex pubkey"
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={collab.weight}
+                      onChange={(e) => {
+                        const updated = [...collaborators];
+                        updated[index].weight = Math.max(0, parseFloat(e.target.value) || 0);
+                        setCollaborators(updated);
+                      }}
+                      placeholder="Weight"
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const updated = collaborators.filter((_, i) => i !== index);
+                      setCollaborators(updated);
+                    }}
+                    className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setCollaborators([...collaborators, { pubkey: '', weight: 1 }]);
+                }}
+                className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700 w-full"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Add Collaborator
+              </Button>
+
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                <p className="text-xs text-gray-400 mb-2">
+                  Revenue Split Preview:
+                </p>
+                {collaborators.length > 0 ? (
+                  <div className="space-y-1">
+                    {(() => {
+                      const total = collaborators.reduce((sum, c) => sum + c.weight, 0);
+                      return collaborators.map((c, i) => {
+                        const percentage = total > 0 ? (c.weight / total) * 100 : 0;
+                        return (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500 font-mono truncate flex-1 mr-2">
+                              {c.pubkey || 'Empty'}
+                            </span>
+                            <Badge variant="secondary" className="bg-gray-700 text-gray-300 text-xs">
+                              {percentage.toFixed(1)}%
+                            </Badge>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">No collaborators added yet</p>
+                )}
+              </div>
+
               <p className="text-xs text-gray-500">
-                Add collaborators to enable automatic revenue splits from zaps
+                Weights determine automatic revenue splits from zaps. They will be normalized to percentages.
               </p>
             </div>
 
