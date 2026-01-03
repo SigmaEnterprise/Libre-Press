@@ -158,6 +158,20 @@ const Index = () => {
     setCurrentVersion(event);
   };
 
+  const handleReset = () => {
+    // Clear all state
+    setDTag('');
+    setAuthorPubkey(undefined);
+    setInputDTag('');
+    setCurrentVersion(undefined);
+    setCompareMode(null);
+    setParseError(null);
+    setActiveTab('editor');
+
+    // Clear URL params
+    setSearchParams({});
+  };
+
   return (
     <div className="min-h-screen bg-[#0d1117]">
       {/* Header */}
@@ -165,7 +179,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => window.location.reload()}
+              onClick={handleReset}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <div className="bg-gradient-to-br from-[#f0883e] to-orange-600 p-2 rounded-lg">
