@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useSearchParams } from 'react-router-dom';
+import { nip19 } from 'nostr-tools';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useArticleVersions } from '@/hooks/useArticleVersions';
 import { LoginArea } from '@/components/auth/LoginArea';
@@ -13,7 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { FileText, GitBranch, BarChart3, Sparkles } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileText, GitBranch, BarChart3, Sparkles, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 const Index = () => {
@@ -23,24 +26,35 @@ const Index = () => {
   });
 
   const { user } = useCurrentUser();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Article identifier state
-  const [dTag, setDTag] = useState(searchParams.get('article') || '');
+  const [dTag, setDTag] = useState('');
+  const [authorPubkey, setAuthorPubkey] = useState<string | undefined>();
   const [inputDTag, setInputDTag] = useState(searchParams.get('article') || '');
+  const [parseError, setParseError] = useState<string | null>(null);
 
   // Fetch article versions
-  const { data: versions, isLoading } = useArticleVersions(dTag, user?.pubkey);
+  const { data: versions, isLoading } = useArticleVersions(dTag, authorPubkey);
 
   // Current view state
   const [currentVersion, setCurrentVersion] = useState<NostrEvent | undefined>();
   const [compareMode, setCompareMode] = useState<{ v1: NostrEvent; v2: NostrEvent } | null>(null);
   const [activeTab, setActiveTab] = useState<'editor' | 'versions' | 'analytics'>('editor');
 
+  // Initialize from URL on mount
+  useEffect(() => {
+    const articleParam = searchParams.get('article');
+    if (articleParam) {
+      parseAndLoadArticle(articleParam);
+    }
+  }, []); // Only run on mount
+
   // Update URL when article changes
   useEffect(() => {
     if (dTag) {
-      setSearchParams({ article: dTag });
+      setSearchParams({ article: inputDTag || dTag });
     } else {
       setSearchParams({});
     }
@@ -53,11 +67,71 @@ const Index = () => {
     }
   }, [versions, currentVersion]);
 
-  const handleLoadArticle = () => {
-    if (inputDTag.trim()) {
-      setDTag(inputDTag.trim());
+  /**
+   * Parse article identifier - supports both plain d-tag and naddr format
+   */
+  const parseAndLoadArticle = (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+
+    setParseError(null);
+
+    // Check if it's an naddr
+    if (trimmed.startsWith('naddr1')) {
+      try {
+        const decoded = nip19.decode(trimmed);
+
+        if (decoded.type !== 'naddr') {
+          setParseError('Invalid identifier type. Please use an naddr for articles.');
+          toast({
+            title: 'Invalid Identifier',
+            description: 'Please provide an naddr identifier for articles',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const naddr = decoded.data;
+
+        // Validate it's a long-form content kind
+        if (naddr.kind !== 30023 && naddr.kind !== 30024) {
+          setParseError(`Invalid article kind: ${naddr.kind}. Expected 30023 or 30024.`);
+          toast({
+            title: 'Invalid Article Kind',
+            description: `This naddr points to kind ${naddr.kind}, but articles use kind 30023 or 30024`,
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        // Set the d-tag and author from the naddr
+        setDTag(naddr.identifier);
+        setAuthorPubkey(naddr.pubkey);
+        setCurrentVersion(undefined);
+
+        toast({
+          title: 'Article Loaded',
+          description: 'Loading versions from Nostr...',
+        });
+      } catch (error) {
+        setParseError('Failed to decode naddr. Please check the format.');
+        toast({
+          title: 'Decode Error',
+          description: 'Invalid naddr format. Please check and try again.',
+          variant: 'destructive',
+        });
+        console.error('naddr decode error:', error);
+      }
+    } else {
+      // Plain d-tag - load without author filter
+      setDTag(trimmed);
+      setAuthorPubkey(user?.pubkey); // Use current user's pubkey if available
       setCurrentVersion(undefined);
     }
+  };
+
+  const handleLoadArticle = () => {
+    parseAndLoadArticle(inputDTag);
   };
 
   const handleNewArticle = () => {
@@ -121,13 +195,16 @@ const Index = () => {
             <div className="grid md:grid-cols-[1fr_auto_auto] gap-3">
               <div className="space-y-2">
                 <Label htmlFor="article-id" className="text-white">
-                  Article Identifier (d-tag)
+                  Article Identifier (d-tag or naddr)
                 </Label>
                 <Input
                   id="article-id"
                   value={inputDTag}
-                  onChange={(e) => setInputDTag(e.target.value)}
-                  placeholder="article-unique-id"
+                  onChange={(e) => {
+                    setInputDTag(e.target.value);
+                    setParseError(null);
+                  }}
+                  placeholder="article-unique-id or naddr1..."
                   className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -135,6 +212,9 @@ const Index = () => {
                     }
                   }}
                 />
+                <p className="text-xs text-gray-500">
+                  Enter a plain d-tag identifier or an naddr for a specific article
+                </p>
               </div>
               <div className="flex items-end">
                 <Button
@@ -157,6 +237,15 @@ const Index = () => {
                 </Button>
               </div>
             </div>
+
+            {parseError && (
+              <Alert variant="destructive" className="mt-4 bg-red-900/20 border-red-500/30">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-red-400">
+                  {parseError}
+                </AlertDescription>
+              </Alert>
+            )}
             {dTag && (
               <div className="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
                 <p className="text-sm text-gray-400">

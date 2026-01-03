@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { nip19 } from 'nostr-tools';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Save, Eye, Users, Calendar, FileText } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Save, Eye, Users, Calendar, FileText, Share2, Copy, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 import ReactMarkdown from 'react-markdown';
@@ -37,6 +39,10 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
   // Preview state
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
 
+  // Share state
+  const [naddr, setNaddr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
   // Load initial article data
   useEffect(() => {
     if (initialArticle) {
@@ -55,8 +61,46 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
       setCollaborators(collaboratorTags.join(', '));
       setPublishedAt(publishedAtTag || '');
       setIsDraft(initialArticle.kind === 30024);
+
+      // Generate naddr for published articles
+      if (initialArticle.kind === 30023) {
+        generateNaddr(initialArticle);
+      }
     }
   }, [initialArticle]);
+
+  const generateNaddr = (event: NostrEvent) => {
+    try {
+      const naddrString = nip19.naddrEncode({
+        kind: event.kind,
+        pubkey: event.pubkey,
+        identifier: dTag,
+      });
+      setNaddr(naddrString);
+    } catch (error) {
+      console.error('Failed to generate naddr:', error);
+    }
+  };
+
+  const handleCopyNaddr = async () => {
+    if (naddr) {
+      try {
+        await navigator.clipboard.writeText(naddr);
+        setCopied(true);
+        toast({
+          title: 'Copied!',
+          description: 'Article address copied to clipboard',
+        });
+        setTimeout(() => setCopied(false), 2000);
+      } catch (error) {
+        toast({
+          title: 'Failed to copy',
+          description: 'Please copy the address manually',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
 
   const handleSave = (asDraft: boolean) => {
     if (!user) {
@@ -114,7 +158,7 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
       .split(',')
       .map((c) => c.trim())
       .filter((c) => c.length > 0);
-    
+
     for (const collaborator of collaboratorList) {
       tags.push(['p', collaborator]);
       // Equal weight for now - will be calculated based on actual contributions
@@ -148,6 +192,12 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
               : 'Your article has been published successfully',
           });
           setIsDraft(asDraft);
+
+          // Generate naddr for published articles
+          if (!asDraft) {
+            generateNaddr(event);
+          }
+
           if (onPublish) {
             onPublish(event);
           }
@@ -323,6 +373,47 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
                 {isDraft ? 'Publish' : 'Update'}
               </Button>
             </div>
+
+            {/* Share Section */}
+            {naddr && !isDraft && (
+              <Alert className="mt-6 bg-gray-800 border-gray-700">
+                <Share2 className="h-4 w-4 text-[#f0883e]" />
+                <AlertDescription>
+                  <div className="space-y-3">
+                    <p className="text-sm text-white font-medium">
+                      Share this article
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={naddr}
+                        readOnly
+                        className="bg-gray-900 border-gray-700 text-white font-mono text-xs"
+                      />
+                      <Button
+                        onClick={handleCopyNaddr}
+                        size="sm"
+                        className="bg-[#f0883e] hover:bg-[#d97735] text-white flex-shrink-0"
+                      >
+                        {copied ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Use this naddr to share your article with others. They can paste it into the Article Manager to load all versions.
+                    </p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </TabsContent>
 
           <TabsContent value="preview" className="min-h-[600px]">

@@ -56,21 +56,38 @@ A decentralized publishing platform for NIP-23 long-form content with version co
 3. Add optional metadata (summary, image, topics)
 4. Click "Save Draft" to save privately
 
-### 2. Collaborate with Others
+### 2. Load an Existing Article
+
+You can load articles in two ways:
+
+**Using d-tag (simple identifier):**
+```
+article-unique-id
+```
+
+**Using naddr (full article address):**
+```
+naddr1qqnk7ur9demk2cnj0qkhqmr4wvkk7m3dwfshxurzv4e8y7fdwp5j6dpdvam826t60ypzp56wsvk59tvtj0q6rs7ggqyngszlxz7tlptl884z7qyvycur77xsqvzqqqr4guft8h2f
+```
+
+The naddr format includes the article identifier, author pubkey, and kind, making it perfect for sharing articles with others.
+
+### 3. Collaborate with Others
 
 1. Add collaborator public keys (npub or hex format)
-2. Share the article identifier with your team
+2. Share the article's **naddr** with your team
 3. Each edit creates a new version automatically
 4. Contribution weights are calculated based on edits
 
-### 3. Publish Your Article
+### 4. Publish Your Article
 
 1. Review your draft in the Preview tab
 2. Click "Publish" to make it public (kind 30023)
 3. Your article is now discoverable on the Nostr network
-4. Track engagement in the Analytics tab
+4. Copy the **naddr** to share with others
+5. Track engagement in the Analytics tab
 
-### 4. Compare Versions
+### 5. Compare Versions
 
 1. Go to the "Versions" tab
 2. Click "Compare Versions"
@@ -119,6 +136,34 @@ const versions = await nostr.query([{
 // Sort by created_at (newest first)
 versions.sort((a, b) => b.created_at - a.created_at);
 ```
+
+### Loading Articles with naddr
+
+Articles can be loaded using either a plain `d` tag identifier or an `naddr` (NIP-19 addressable event identifier):
+
+```typescript
+import { nip19 } from 'nostr-tools';
+
+// Decode naddr to get article coordinates
+const decoded = nip19.decode('naddr1qqnk7ur9...');
+
+if (decoded.type === 'naddr') {
+  const { kind, pubkey, identifier } = decoded.data;
+
+  // Query for all versions by this author
+  const versions = await nostr.query([{
+    kinds: [30023, 30024],
+    authors: [pubkey],
+    '#d': [identifier],
+  }]);
+}
+```
+
+The `naddr` format is recommended for sharing as it includes:
+- **kind**: Event kind (30023 for articles)
+- **pubkey**: Author's public key
+- **identifier**: The `d` tag value
+- **relays** (optional): Relay hints for finding the event
 
 ### Contribution Calculation
 
@@ -196,7 +241,7 @@ const diff = computeDiff(oldVersion.content, newVersion.content);
 Quality score is calculated from engagement:
 
 ```typescript
-const qualityScore = Math.min(100, 
+const qualityScore = Math.min(100,
   (reactions.length * 2) +
   (comments.length * 3) +
   (reposts.length * 5) +
