@@ -164,15 +164,18 @@ const Index = () => {
       <header className="border-b border-gray-800 bg-[#0d1117]/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <div className="bg-gradient-to-br from-[#f0883e] to-orange-600 p-2 rounded-lg">
                 <FileText className="h-6 w-6 text-white" />
               </div>
-              <div>
+              <div className="text-left">
                 <h1 className="text-xl font-bold text-white">Nostr Article Versions</h1>
                 <p className="text-xs text-gray-400">Collaborative Long-Form Publishing</p>
               </div>
-            </div>
+            </button>
             <LoginArea className="max-w-60" />
           </div>
         </div>
