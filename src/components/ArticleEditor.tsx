@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, Eye, Users, Calendar, FileText, Share2, Copy, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
-import ReactMarkdown from 'react-markdown';
+import { ArticlePreview } from '@/components/ArticlePreview';
 
 interface ArticleEditorProps {
   initialArticle?: NostrEvent;
@@ -513,33 +513,17 @@ export function ArticleEditor({ initialArticle, dTag, onPublish }: ArticleEditor
           </TabsContent>
 
           <TabsContent value="preview" className="min-h-[600px]">
-            <div className="prose prose-invert max-w-none">
-              {image && (
-                <img
-                  src={image}
-                  alt={title}
-                  className="w-full h-64 object-cover rounded-lg mb-6"
-                />
-              )}
-              <h1 className="text-4xl font-bold text-white mb-2">{title || 'Untitled'}</h1>
-              {summary && <p className="text-xl text-gray-400 mb-6">{summary}</p>}
-              {topics && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {topics
-                    .split(',')
-                    .map((t) => t.trim())
-                    .filter((t) => t.length > 0)
-                    .map((topic) => (
-                      <Badge key={topic} variant="secondary" className="bg-gray-800 text-gray-300">
-                        #{topic}
-                      </Badge>
-                    ))}
-                </div>
-              )}
-              <div className="text-gray-300">
-                <ReactMarkdown>{content || '*No content yet*'}</ReactMarkdown>
-              </div>
-            </div>
+            <ArticlePreview
+              title={title}
+              summary={summary}
+              content={content}
+              image={image}
+              topics={topics
+                .split(',')
+                .map((t) => t.trim())
+                .filter((t) => t.length > 0)}
+              publishedAt={publishedAt}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

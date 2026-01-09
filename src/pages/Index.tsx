@@ -10,6 +10,7 @@ import { VersionHistory } from '@/components/VersionHistory';
 import { DiffViewer } from '@/components/DiffViewer';
 import { ArticleAnalytics } from '@/components/ArticleAnalytics';
 import { ArticleZapButtonWrapper } from '@/components/ArticleZapButtonWrapper';
+import { ArticleBrowser } from '@/components/ArticleBrowser';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +43,7 @@ const Index = () => {
   // Current view state
   const [currentVersion, setCurrentVersion] = useState<NostrEvent | undefined>();
   const [compareMode, setCompareMode] = useState<{ v1: NostrEvent; v2: NostrEvent } | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'versions' | 'analytics'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'versions' | 'analytics' | 'browse'>('editor');
 
   // Initialize from URL on mount
   useEffect(() => {
@@ -301,7 +302,7 @@ const Index = () => {
                 />
               ) : (
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-800">
+                  <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-800">
                     <TabsTrigger
                       value="editor"
                       className="data-[state=active]:bg-[#f0883e]"
@@ -322,6 +323,13 @@ const Index = () => {
                     >
                       <BarChart3 className="h-4 w-4 mr-2" />
                       Analytics
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="browse"
+                      className="data-[state=active]:bg-[#f0883e]"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Browse
                     </TabsTrigger>
                   </TabsList>
 
@@ -347,6 +355,10 @@ const Index = () => {
                       currentVersion={currentVersion}
                       allVersions={versions || []}
                     />
+                  </TabsContent>
+
+                  <TabsContent value="browse">
+                    <ArticleBrowser />
                   </TabsContent>
                 </Tabs>
               )}

@@ -35,11 +35,23 @@ A decentralized publishing platform for NIP-23 long-form content with version co
 - **Contributor Dashboard**: View all contributors and their impact
 - **Real-time Statistics**: Live updates of article performance
 
-### 🎨 Premium Design
+### 🎨 Premium Design & Rich Media
+- **Beautiful Article Preview**: Professional rendering with custom styling
+- **Rich Markdown Support**: GFM tables, task lists, strikethrough, and more
+- **Image Support**: JPG, PNG, GIF, WebP with CDN optimization
+- **Video Playback**: Native MP4 video player with controls
+- **Audio Player**: Custom audio player with seek, volume, and time display
 - **Obsidian Dark Theme**: Beautiful dark UI with `#0d1117` background
 - **Orange Accents**: Eye-catching `#f0883e` orange for action items
 - **Responsive Layout**: Perfect on desktop, tablet, and mobile
-- **Markdown Editor**: Full-featured editor with live preview
+
+### 📚 Article Browser
+- **Browse Latest Articles**: View latest long-form content from Nostr network
+- **Major Relay Support**: Pulls from Damus, Primal, Nos.lol, and more
+- **Live Updates**: Auto-refreshes every 30 seconds
+- **Rich Preview Cards**: See title, author, summary, and images
+- **One-Click Read**: Click any article to read in full
+- **Copy naddr**: Easy sharing with naddr copy button
 
 ## Technology Stack
 
