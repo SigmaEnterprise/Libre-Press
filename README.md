@@ -362,7 +362,7 @@ Powered by:
 
 For issues or questions:
 - Open an issue on GitHub
-- Contact via Nostr: `npub1...` (add your npub)
+- Contact via Nostr: `npub16d8gxt2z4k9e8sdpc0yyqzf5gp0np09ls4lnn630qzxzvwpl0rgq5h4rzv` 
 
 ## Roadmap
 
