@@ -88,8 +88,11 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "unified": "^11.0.5",
+    "unist-util-stringify-position": "^4.0.0",
     "unist-util-visit": "^5.0.0",
     "vaul": "^0.9.3",
+    "vfile": "^6.0.3",
+    "vfile-message": "^4.0.3",
     "web-namespaces": "^2.0.1",
     "zod": "^3.25.71",
     "zwitch": "^2.0.4"
